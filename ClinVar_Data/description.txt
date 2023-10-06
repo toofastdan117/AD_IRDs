@@ -1,0 +1,1 @@
+Folder to place vcf file from ClinVar (https://ftp.ncbi.nlm.nih.gov/pub/clinvar/).

@@ -1,0 +1,2 @@
+Folder to place patient variant information. 
+Empty for patient privacy.

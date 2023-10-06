@@ -1,0 +1,406 @@
+---
+title: "ROC_AUC_plotter"
+author: "Daniel Brock"
+date: "2023-07-07"
+output: html_document
+---
+
+# Importing required packages and setting working directory
+
+```{r}
+# Libraries
+#library("plyr")
+library("tidyverse")
+library("RColorBrewer")
+library("readxl")
+#library("ggpubr")
+
+# Working directory
+cwd <- getwd()
+print(cwd)
+```
+
+
+
+# Importing the preprocessed ROC and AUC dfs from python export
+
+```{r}
+# AUC Inheritance
+auc_ar_all <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/auc/auc_ar_all_performance.xlsx"))
+auc_ar_only <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/auc/auc_ar_only_performance.xlsx"))
+
+auc_ad_all <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/auc/auc_ad_all_performance.xlsx"))
+auc_ad_only <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/auc/auc_ad_only_performance.xlsx"))
+
+auc_ad_gof_all <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/auc/auc_ad_gof_all_performance.xlsx"))
+auc_ad_gof_only <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/auc/auc_ad_gof_only_performance.xlsx"))
+
+auc_ad_haplo_all <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/auc/auc_ad_haplo_all_performance.xlsx"))
+auc_ad_haplo_only <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/auc/auc_ad_haplo_only_performance.xlsx"))
+```
+
+```{r}
+# ROC Inheritance
+roc_ar_all <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/roc/roc_ar_all_performance.xlsx"))
+roc_ar_only <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/roc/roc_ar_only_performance.xlsx"))
+
+roc_ad_all <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/roc/roc_ad_all_performance.xlsx"))
+roc_ad_only <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/roc/roc_ad_only_performance.xlsx"))
+
+roc_ad_gof_all <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/roc/roc_ad_gof_all_performance.xlsx"))
+roc_ad_gof_only <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/roc/roc_ad_gof_only_performance.xlsx"))
+
+roc_ad_haplo_all <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/roc/roc_ad_haplo_all_performance.xlsx"))
+roc_ad_haplo_only <- read_xlsx(path = paste0(cwd, "/AUC_ROC_results/roc/roc_ad_haplo_only_performance.xlsx"))
+```
+
+
+
+# Graphing AUCs
+
+```{r}
+AUC_ploter <- function(df, input_title, min_y, max_y) {
+  
+  # Function to plot the top 20 predictors' AUC with a bar graph
+  
+  auc_plot <- df %>% dplyr::slice_max(order_by = AUC, n = 20) %>% 
+    ggplot(aes(x = reorder(Model, -AUC), y = AUC, label = paste0(round(AUC, digits = 3), " [", round(Percent_Retained, digits = 3), "%]"))) +
+    geom_bar(stat = "identity", fill = "#c9c9c9", color = "black", size = 0.5) +
+    geom_text(size = 3, y = min_y, angle = 90, hjust = "left") +
+    coord_cartesian(ylim = c(min_y, max_y)) +
+    labs(title = input_title, x = "Model") +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 60, hjust = 1),
+          plot.title = element_text(hjust = 0.5))
+  print(auc_plot)
+  return(auc_plot)
+}
+```
+
+```{r}
+# Plotting ALL Autosomal Recessive AUCs
+auc_ar_all_plot <- AUC_ploter(df = auc_ar_all, input_title = "Top 20 Predictors of ALL Autosomal Recessive Variants", min_y = 0.80, max_y = 1.00)
+print(auc_ar_all_plot)
+
+# Optional export of figures
+#ggsave(plot = auc_ar_all_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ar_all_plot.pdf"), width = 2000, height = 1500, units = "px", dpi = 300)
+#ggsave(plot = auc_ar_all_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ar_all_plot.png"), width = 2000, height = 1500, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ONLY Autosomal Recessive AUCs
+auc_ar_only_plot <- AUC_ploter(df = auc_ar_only, input_title = "Top 20 Predictors of ONLY Autosomal Recessive Variants", min_y = 0.80, max_y = 1.00)
+
+# Optional export of figures
+#ggsave(plot = auc_ar_only_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ar_only_plot.pdf"), width = 2000, height = 1500, units = "px", dpi = 300)
+#ggsave(plot = auc_ar_only_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ar_only_plot.png"), width = 2000, height = 1500, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ALL Autosomal Dominant AUCs
+auc_ad_all_plot <- AUC_ploter(df = auc_ad_all, input_title = "Top 20 Predictors of ALL Autosomal Dominant Variants", min_y = 0.80, max_y = 1.00)
+
+# Optional export of figures
+#ggsave(plot = auc_ad_all_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_all_plot.pdf"), width = 2000, height = 1500, units = "px", dpi = 300)
+#ggsave(plot = auc_ad_all_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_all_plot.png"), width = 2000, height = 1500, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ONLY Autosomal Dominant AUCs
+auc_ad_only_plot <- AUC_ploter(df = auc_ad_only, input_title = "Top 20 Predictors of ONLY Autosomal Dominant Variants", min_y = 0.80, max_y = 1.00)
+
+# Optional export of figures
+#ggsave(plot = auc_ad_only_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_only_plot.pdf"), width = 2000, height = 1500, units = "px", dpi = 300)
+#ggsave(plot = auc_ad_only_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_only_plot.png"), width = 2000, height = 1500, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ALL GOF Autosomal Dominant AUCs
+auc_ad_gof_all_plot <- AUC_ploter(df = auc_ad_gof_all, input_title = "Top 20 Predictors of ALL GOF Autosomal Dominant Variants", min_y = 0.80, max_y = 1.00)
+
+# Optional export of figures
+#ggsave(plot = auc_ad_gof_all_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_gof_all_plot.pdf"), width = 2000, height = 1500, units = "px", dpi = 300)
+#ggsave(plot = auc_ad_gof_all_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_gof_all_plot.png"), width = 2000, height = 1500, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ONLY GOF Autosomal Dominant AUCs
+auc_ad_gof_only_plot <- AUC_ploter(df = auc_ad_gof_only, input_title = "Top 20 Predictors of ONLY GOF Autosomal Dominant Variants", min_y = 0.80, max_y = 1.00)
+
+# Optional export of figures
+#ggsave(plot = auc_ad_gof_only_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_gof_only_plot.pdf"), width = 2000, height = 1500, units = "px", dpi = 300)
+#ggsave(plot = auc_ad_gof_only_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_gof_only_plot.png"), width = 2000, height = 1500, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ALL Haploinsuffiency Autosomal Dominant AUCs
+auc_ad_haplo_all_plot <- AUC_ploter(df = auc_ad_haplo_all, input_title = "Top 20 Predictors of ALL Haploinsuffiency Autosomal Dominant Variants", min_y = 0.80, max_y = 1.00)
+
+# Optional export of figures
+#ggsave(plot = auc_ad_haplo_all_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_haplo_all_plot.pdf"), width = 2000, height = 1500, units = "px", dpi = 300)
+#ggsave(plot = auc_ad_haplo_all_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_haplo_all_plot.png"), width = 2000, height = 1500, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ONLY Haploinsuffiency Autosomal Dominant AUCs
+auc_ad_haplo_only_plot <- AUC_ploter(df = auc_ad_haplo_only, input_title = "Top 20 Predictors of ONLY Haploinsuffiency Autosomal Dominant Variants", min_y = 0.80, max_y = 1.00)
+
+# Optional export of figures
+#ggsave(plot = auc_ad_haplo_only_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_haplo_only_plot.pdf"), width = 2000, height = 1500, units = "px", dpi = 300)
+#ggsave(plot = auc_ad_haplo_only_plot, filename = paste0(cwd, "/results/graphs/cluster_ad-ar/auc_ad_haplo_only_plot.png"), width = 2000, height = 1500, units = "px", dpi = 300)
+```
+
+
+
+
+
+
+# Graphing ROC Curves
+
+```{r}
+ROC_plotter <- function(df_auc, df_roc, input_title) {
+  
+  # Function to plot the top 10 ROC curve models
+  
+  ### Sorting and numbering the top 10 ROC curves from AUC performance
+  df_auc$Model <- gsub(pattern = "_score", replacement = "", x = df_auc$Model)
+  df_roc$model <- gsub(pattern = "_score", replacement = "", x = df_roc$model)
+  top_10_aucs_df <- df_auc %>% dplyr::slice_max(order_by = AUC, n = 9) %>% dplyr::arrange(-AUC)
+  top_10_aucs_df$ranks <- c(0:8)
+  top_10_aucs_df$AUC <- round(x = top_10_aucs_df$AUC, digits = 3)
+  top_10_aucs_df$model_ranks <- paste0(top_10_aucs_df$ranks, ". ", top_10_aucs_df$Model, " [", top_10_aucs_df$AUC, "]")
+  top_10_aucs <- df_auc %>% dplyr::slice_max(order_by = AUC, n = 9) %>% dplyr::pull(Model)
+  df_roc_filt <- df_roc %>% dplyr::filter(model %in% top_10_aucs)
+  
+  ### Mapping ranked model names to regular model names
+  df_roc_filt$model <- plyr::mapvalues(x = df_roc_filt$model, from = top_10_aucs_df$Model, to = top_10_aucs_df$model_ranks)
+  
+  ### Making the ROC graph
+  roc_plot <- df_roc_filt %>% ggplot(aes(x = fpr, y = tpr, color = model)) +
+    geom_line() +
+    labs(title = input_title, x = "False Positive Rate", y = "True Positive Rate", color = "Model") +
+    theme_bw() +
+    theme(plot.title = element_text(hjust = 0.5, size = 20),
+          axis.text = element_text(size = 12),
+          axis.title = element_text(size = 16),
+          legend.text = element_text(size = 14),
+          legend.title = element_text(size = 16),
+          legend.position = c(0.63, 0.45), 
+          legend.background = element_rect(color = "black"),
+          legend.box.margin = margin(10, 10, 10, 10))
+  
+  ### Returning the output ROC graph
+  print(roc_plot)
+  return(roc_plot)
+}
+```
+
+```{r}
+# Plotting ALL Autosomal Recessive ROC curves
+roc_ar_all_plot <- ROC_plotter(df_auc = auc_ar_all, df_roc = roc_ar_all, input_title = "Variants in ALL Autosomal Recessive IRD Genes\n3055 PLP and BLB ClinVar Missense Variants")
+
+# Optional export of figures
+#ggsave(plot = roc_ar_all_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ar_all_plot.pdf"), width = 2000, height = 2000, units = "px", dpi = 300)
+#ggsave(plot = roc_ar_all_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ar_all_plot.png"), width = 2000, height = 2000, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ONLY Autosomal Recessive ROC curves
+roc_ar_only_plot <- ROC_plotter(df_auc = auc_ar_only, df_roc = roc_ar_only, input_title = "Variants in ONLY Autosomal Recessive IRD Genes\n2165 PLP and BLB ClinVar Missense Variants")
+
+# Optional export of figures
+#ggsave(plot = roc_ar_only_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ar_only_plot.pdf"), width = 2000, height = 2000, units = "px", dpi = 300)
+#ggsave(plot = roc_ar_only_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ar_only_plot.png"), width = 2000, height = 2000, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ALL Autosomal Dominant ROC curves
+roc_ad_all_plot <- ROC_plotter(df_auc = auc_ad_all, df_roc = roc_ad_all, input_title = "Variants in ALL Autosomal Dominant IRD Genes\n1926 PLP and BLB ClinVar Missense Variants")
+
+# Optional export of figures
+#ggsave(plot = roc_ad_all_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_all_plot.pdf"), width = 2000, height = 2000, units = "px", dpi = 300)
+#ggsave(plot = roc_ad_all_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_all_plot.png"), width = 2000, height = 2000, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ONLY Autosomal Dominant ROC curves
+roc_ad_only_plot <- ROC_plotter(df_auc = auc_ad_only, df_roc = roc_ad_only, input_title = "Variants in ONLY Autosomal Dominant IRD Genes\n1036 PLP and BLB ClinVar Missense Variants")
+
+# Optional export of figures
+#ggsave(plot = roc_ad_only_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_only_plot.pdf"), width = 2000, height = 2000, units = "px", dpi = 300)
+#ggsave(plot = roc_ad_only_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_only_plot.png"), width = 2000, height = 2000, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ALL GOF Autosomal Dominant ROC curves
+roc_ad_gof_all_plot <- ROC_plotter(df_auc = auc_ad_gof_all, df_roc = roc_ad_gof_all, input_title = "Variants in ALL AD GOF IRD Genes\n1024 PLP and BLB ClinVar Missense Variants")
+
+# Optional export of figures
+#ggsave(plot = roc_ad_gof_all_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_gof_all_plot.pdf"), width = 2000, height = 2000, units = "px", dpi = 300)
+#ggsave(plot = roc_ad_gof_all_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_gof_all_plot.png"), width = 2000, height = 2000, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ONLY GOF Autosomal Dominant ROC curves
+roc_ad_gof_only_plot <- ROC_plotter(df_auc = auc_ad_gof_only, df_roc = roc_ad_gof_only, input_title = "Variants in ONLY AD GOF IRD Genes\n173 PLP and BLB ClinVar Missense Variants")
+
+# Optional export of figures
+#ggsave(plot = roc_ad_gof_only_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_gof_only_plot.pdf"), width = 2000, height = 2000, units = "px", dpi = 300)
+#ggsave(plot = roc_ad_gof_only_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_gof_only_plot.png"), width = 2000, height = 2000, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ALL Haploinsufficient Autosomal Dominant ROC curves
+roc_ad_haplo_all_plot <- ROC_plotter(df_auc = auc_ad_haplo_all, df_roc = roc_ad_haplo_all, input_title = "Variants in ALL AD Haploinsuffiency IRD Genes\n902 PLP and BLB ClinVar Missense Variants")
+
+# Optional export of figures
+#ggsave(plot = roc_ad_haplo_all_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_haplo_all_plot.pdf"), width = 2000, height = 2000, units = "px", dpi = 300)
+#ggsave(plot = roc_ad_haplo_all_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_haplo_all_plot.png"), width = 2000, height = 2000, units = "px", dpi = 300)
+```
+
+```{r}
+# Plotting ONLY Haploinsufficient Autosomal Dominant ROC curves
+roc_ad_haplo_only_plot <- ROC_plotter(df_auc = auc_ad_haplo_only, df_roc = roc_ad_haplo_only, input_title = "Variants in ONLY AD Haploinsuffiency IRD Genes\n863 PLP and BLB ClinVar Missense Variants")
+
+# Optional export of figures
+#ggsave(plot = roc_ad_haplo_only_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_haplo_only_plot.pdf"), width = 2000, height = 2000, units = "px", dpi = 300)
+#ggsave(plot = roc_ad_haplo_only_plot, filename = paste0(cwd, "/results/graphs/ad-ar/roc_ad_haplo_only_plot.png"), width = 2000, height = 2000, units = "px", dpi = 300)
+```
+
+
+
+
+# Generating an AUC bargraph for selected predictors
+
+```{r}
+# Selecting for well-performing and historically-used predictors. Change input dataframe for each inheritance pattern!
+auc_df <- auc_ad_gof_only %>% 
+  mutate(select_model = recode(Model,
+    MutScore = "MutScore",
+    MetaRNN_score = "MetaRNN",
+    ClinPred_score = "ClinPred",
+    BayesDel_addAF_score = "BayesDel-addAF",
+    REVEL_score = "REVEL",
+    VEST4_score = "VEST4",
+    SIFT_converted_rankscore = "SIFT",
+    CADD_raw = "CADD",
+    Polyphen2_HVAR_score = "Polyphen2"
+    )) %>% 
+  filter(select_model %in% c("MutScore", "MetaRNN", "ClinPred", "BayesDel-addAF", "REVEL", "VEST4", "SIFT", "CADD", "Polyphen2"))
+auc_df$select_model <- factor(x = auc_df$select_model, levels = c("MutScore", "MetaRNN", "ClinPred", "BayesDel-addAF", "REVEL", "VEST4", "SIFT", "CADD", "Polyphen2"))
+
+# Graphing
+auc_plot <- auc_df %>% 
+  ggplot(aes(x = reorder(select_model, -AUC), y = AUC, label = paste0(round(AUC, digits = 3), " [", round(Percent_Retained, digits = 3), "%]"))) +
+  geom_bar(stat = "identity", fill = "#c9c9c9", color = "black", size = 0.5) +
+  geom_text(size = 4, y = 0.75, angle = 90, hjust = "left") +
+  coord_cartesian(ylim = c(0.75, 1)) +
+  labs(title = "Autosomal Dominant Gain-of-Function AUC Analysis", x = "Model") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 16),
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 12),
+        axis.text.y = element_text(size = 12),
+        axis.title = element_text(size = 14))
+print(auc_plot)
+
+# Optional export of figures
+#ggsave(plot = auc_plot, filename = paste0(cwd, "/AUC_ROC_results/auc_ad_gof_only_plot.pdf"), width = 2200, height = 1800, units = "px", dpi = 300)
+```
+
+# Generating an ROC curve for selected predictors
+
+```{r}
+# Selecting for well-performing and historically-used predictors. Change input dataframe for each inheritance pattern!
+roc_df <- roc_ad_gof_only %>% 
+  mutate(select_model = recode(model,
+    MutScore = "MutScore",
+    MetaRNN_score = "MetaRNN",
+    ClinPred_score = "ClinPred",
+    BayesDel_addAF_score = "BayesDel-addAF",
+    REVEL_score = "REVEL",
+    VEST4_score = "VEST4",
+    SIFT_converted_rankscore = "SIFT",
+    CADD_raw = "CADD",
+    Polyphen2_HVAR_score = "Polyphen2"
+  )) %>% 
+  filter(select_model %in% c("MutScore", "MetaRNN", "ClinPred", "BayesDel-addAF", "REVEL", "VEST4", "SIFT", "CADD", "Polyphen2"))
+roc_df$select_model <- factor(x = roc_df$select_model, levels = c("MutScore", "MetaRNN", "ClinPred", "BayesDel-addAF", "REVEL", "VEST4", "SIFT", "CADD", "Polyphen2"))
+
+# Sorting and numbering the top selected ROC curves from AUC performance
+top_aucs_df <- auc_df %>% arrange(-AUC)
+top_aucs_df$ranks <- c(1:9)
+top_aucs_df$AUC <- round(x = top_aucs_df$AUC, digits = 3)
+top_aucs_df$model_ranks <- paste0(top_aucs_df$ranks, ". ", top_aucs_df$select_model, " [", top_aucs_df$AUC, "]")
+top_aucs_df <- top_aucs_df %>% select(select_model, AUC, Percent_Retained, ranks, model_ranks)
+roc_df <- merge(roc_df, top_aucs_df, on = "select_model")
+
+# Selecting a color scheme, based on classifier
+model_colors <- list(
+  "MutScore" = "#FF0000",
+  "MetaRNN" = "#00FF00",
+  "ClinPred" = "#0000FF",
+  "BayesDel-addAF" = "#FF7F00",
+  "REVEL" = "#984EA3",
+  "VEST4" = "#00BFFF",
+  "SIFT" = "#FF69B4",
+  "CADD" = "#FFD700",
+  "Polyphen2" = "#006837"
+)
+model_colors <- as.data.frame(model_colors) %>% t() %>% as.data.frame() %>% tibble::rownames_to_column(var = "select_model")
+colnames(model_colors) <- c("select_model", "hexcolor")
+model_colors$select_model <- gsub(pattern = "\\.", replacement = "-", x = model_colors$select_model)
+model_colors <- merge(model_colors, top_aucs_df, on = "select_model")
+model_colors <- model_colors %>% arrange(-AUC)
+
+# Making the ROC graph
+roc_plot <- roc_df %>% ggplot(aes(x = fpr, y = tpr, group = model_ranks, color = model_ranks)) +
+  geom_line(size = 0.5) +
+  scale_color_manual(values = model_colors$hexcolor) + 
+  labs(title = "Autosomal Dominant Gain-of-Function Variants", x = "False Positive Rate", y = "True Positive Rate", color = "Model") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 20),
+        axis.text = element_text(size = 14),
+        axis.title = element_text(size = 16),
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 16),
+        legend.position = c(0.63, 0.45), 
+        legend.background = element_rect(color = "black"),
+        legend.box.margin = margin(10, 10, 10, 10))
+print(roc_plot)
+
+# Optional export of figures
+#ggsave(plot = roc_plot, filename = paste0(cwd, "/AUC_ROC_results/roc_ad_gof_only_plot.pdf"), width = 2000, height = 2000, units = "px", dpi = 300)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

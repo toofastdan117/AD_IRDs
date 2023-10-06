@@ -1,0 +1,1 @@
+Folder to place ANNOVAR program and associated humandb files (such as the hg19_mutscore.txt file) into.

@@ -1,0 +1,17 @@
+# Ignore all checkpoints from IDEs and ipython
+.ipynb_checkpoints
+.Rproj.user
+.RData
+.Rhistory
+Github.code-workspace
+GitHub.Rproj
+
+# Ignore large ClinVar and ANNOVAR input/output files
+/ClinVar_Data/*.vcf
+/annovar_files/*.avinput
+/annovar_files/*.csv
+/annovar_files/*.invalid_input
+/annovar_files/*.xlsx
+
+# Ignore all data containing patient variant information
+/patient_data/*.csv
