@@ -15,3 +15,4 @@ GitHub.Rproj
 
 # Ignore all data containing patient variant information
 /patient_data/*.csv
+/patient_data/patient_selector.ipynb
