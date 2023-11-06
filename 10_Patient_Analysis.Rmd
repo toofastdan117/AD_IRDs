@@ -1,0 +1,420 @@
+---
+title: "Patient_Analysis"
+author: "Daniel Brock"
+date: "2023-07-13"
+output: html_document
+---
+
+# Importing required packages and setting working directory
+
+```{r setup, include=FALSE}
+# Required packages
+library(tidyverse)
+library(ggpubr)
+library(readxl)
+library(writexl)
+
+# Setting working directory
+cwd <- getwd()
+print(cwd)
+```
+
+# Importing patient info, filtering for nonsynonymous SNVs, and importing RetNet genes
+
+```{r}
+# Importing annotated IRD patient variants
+patient_info_raw <- read.csv(file = paste0(cwd, "/patient_data/annovar_patient_data.csv"), na.strings = c("."))
+
+# Importing RetNet genes
+retnet <- read_xlsx(path = paste0(cwd, "/RetNet/RetNet_AD-AR_FINALIZED.xlsx"), sheet = "gene_info")
+
+# Filtering for nonsynonymous SNVs
+patient_info <- patient_info_raw[patient_info_raw$ExonicFunc.refGene=="nonsynonymous SNV", ]
+
+# Filtering for IRD genes
+patient_retnet <- patient_info[patient_info$Gene.refGene %in% retnet$gene, ]
+```
+
+
+
+### Plotting different classifiers and finding genes of interest
+
+# Filtering for models of interest and defining classifier thresholds
+
+```{r}
+# Filtering for top performing models
+selected_columns <- c("Chr", "Start", "End", "Ref", "Alt", "Patient_ID", "Geno", "Genotype", "alt_reads", "ref_reads", "total_reads", "gnomad_WES_AC", "gnomad_WGS_AC", "gnomad_WES_AF", "gnomad_WGS_AF", "gnomad_WES_AN", "gnomad_WGS_AN", "Func.refGene", "Gene.refGene", "ExonicFunc.refGene", "AAChange.refGene", "Xref.refGene", "MutScore", "VEST4_score", "REVEL_score", "ClinPred_score", "MetaRNN_score", "BayesDel_addAF_score", "BayesDel_noAF_score")
+patient_retnet_filt <- patient_retnet[ , colnames(patient_retnet) %in% selected_columns]
+
+
+
+# Defining upper/lower classifier thresholds for each model (in classifier_thresholds.xlsx document) - VEST4
+patient_retnet_filt <- patient_retnet_filt %>% 
+  dplyr::mutate(
+    VEST4_score_pathogenicity = case_when(
+      VEST4_score <= 0.463 ~ "Likely-Benign",
+      VEST4_score > 0.463 & VEST4_score < 0.906 ~ "VUS",
+      VEST4_score >= 0.906 ~ "Likely-Pathogenic"
+    )
+  )
+patient_retnet_filt$VEST4_score_pathogenicity <- paste0("VEST4-score_", patient_retnet_filt$VEST4_score_pathogenicity, "_", patient_retnet_filt$VEST4_score)
+
+# Defining upper/lower classifier thresholds for each model (in classifier_thresholds.xlsx document) - MetaRNN
+patient_retnet_filt <- patient_retnet_filt %>% 
+  dplyr::mutate(
+    MetaRNN_score_pathogenicity = case_when(
+      MetaRNN_score <= 0.609 ~ "Likely-Benign",
+      MetaRNN_score > 0.609 & MetaRNN_score < 0.814 ~ "VUS",
+      MetaRNN_score >= 0.814 ~ "Likely-Pathogenic"
+    )
+  )
+patient_retnet_filt$MetaRNN_score_pathogenicity <- paste0("MetaRNN-score_", patient_retnet_filt$MetaRNN_score_pathogenicity, "_", patient_retnet_filt$MetaRNN_score)
+
+# Defining upper/lower classifier thresholds for each model (in classifier_thresholds.xlsx document) - REVEL
+patient_retnet_filt <- patient_retnet_filt %>% 
+  dplyr::mutate(
+    REVEL_score_pathogenicity = case_when(
+      REVEL_score <= 0.368 ~ "Likely-Benign",
+      REVEL_score > 0.368 & REVEL_score < 0.796 ~ "VUS",
+      REVEL_score >= 0.796 ~ "Likely-Pathogenic"
+    )
+  )
+patient_retnet_filt$REVEL_score_pathogenicity <- paste0("REVEL-score_", patient_retnet_filt$REVEL_score_pathogenicity, "_", patient_retnet_filt$REVEL_score)
+
+# Defining upper/lower classifier thresholds for each model (in classifier_thresholds.xlsx document) - BayesDel_addAF
+patient_retnet_filt <- patient_retnet_filt %>% 
+  dplyr::mutate(
+    BayesDel_addAF_score_pathogenicity = case_when(
+      BayesDel_addAF_score <= 0.013 ~ "Likely-Benign",
+      BayesDel_addAF_score > 0.013 & BayesDel_addAF_score < 0.267 ~ "VUS",
+      BayesDel_addAF_score >= 0.267 ~ "Likely-Pathogenic"
+    )
+  )
+patient_retnet_filt$BayesDel_addAF_score_pathogenicity <- paste0("BayesDel-addAF-score_", patient_retnet_filt$BayesDel_addAF_score_pathogenicity, "_", patient_retnet_filt$BayesDel_addAF_score)
+
+# Defining upper/lower classifier thresholds for each model (in classifier_thresholds.xlsx document) - ClinPred
+patient_retnet_filt <- patient_retnet_filt %>% 
+  dplyr::mutate(
+    ClinPred_score_pathogenicity = case_when(
+      ClinPred_score <= 0.851 ~ "Likely-Benign",
+      ClinPred_score > 0.851 & ClinPred_score < 0.975 ~ "VUS",
+      ClinPred_score >= 0.975 ~ "Likely-Pathogenic"
+    )
+  )
+patient_retnet_filt$ClinPred_score_pathogenicity <- paste0("ClinPred-score_", patient_retnet_filt$ClinPred_score_pathogenicity, "_", patient_retnet_filt$ClinPred_score)
+
+# Defining upper/lower classifier thresholds for each model (in classifier_thresholds.xlsx document) - MutScore
+patient_retnet_filt <- patient_retnet_filt %>% 
+  dplyr::mutate(
+    MutScore_pathogenicity = case_when(
+      MutScore <= 0.558 ~ "Likely-Benign",
+      MutScore > 0.558 & MutScore < 0.868 ~ "VUS",
+      MutScore >= 0.868 ~ "Likely-Pathogenic"
+    )
+  )
+patient_retnet_filt$MutScore_pathogenicity <- paste0("MutScore_", patient_retnet_filt$MutScore_pathogenicity, "_", patient_retnet_filt$MutScore)
+
+
+
+# Pivoting columns and separating columns (STOP HERE before running this part if you want to export excel)
+`%notin%` <- Negate(`%in%`)
+raw_scores <- c("MutScore", "VEST4_score", "REVEL_score", "ClinPred_score", "MetaRNN_score", "BayesDel_addAF_score")
+pathogenic_scores <- c("VEST4_score_pathogenicity", "MetaRNN_score_pathogenicity", "REVEL_score_pathogenicity", "BayesDel_addAF_score_pathogenicity", "ClinPred_score_pathogenicity", "MutScore_pathogenicity")
+patient_retnet_filt <- patient_retnet_filt[ , colnames(patient_retnet_filt) %notin% raw_scores]
+patient_retnet_filt <- patient_retnet_filt %>%
+  tidyr::pivot_longer(
+    cols = all_of(pathogenic_scores),
+    names_to = "classifications",
+    values_to = "classifications_info"
+  )
+patient_retnet_filt <- patient_retnet_filt %>% 
+  tidyr::separate(
+    col = classifications_info,
+    into = c("Classifier", "Pathogenicity", "Score"),
+    sep = "_"
+  )
+patient_retnet_filt[patient_retnet_filt == "NA"] <- NA
+patient_retnet_filt$Classifier <- gsub(pattern = "-score", replacement = "", x = patient_retnet_filt$Classifier)
+patient_retnet_filt$Classifier <- factor(x = patient_retnet_filt$Classifier, levels = c("MutScore", "MetaRNN", "ClinPred", "REVEL", "VEST4", "BayesDel-addAF"))
+patient_retnet_filt$Pathogenicity <- factor(x = patient_retnet_filt$Pathogenicity, levels = c("Likely-Pathogenic", "VUS", "Likely-Benign"))
+patient_retnet_filt$Score <- as.numeric(patient_retnet_filt$Score)
+```
+
+# Splitting scores into different inheritance patterns defined in RetNet
+
+```{r}
+# Filtering RetNet for Inheritance Pattern
+ar_all <- retnet %>% dplyr::filter(AR==1) %>% dplyr::pull(gene)
+ar_only <- retnet %>% dplyr::filter(AR==1, AD==0) %>% dplyr::pull(gene)
+ad_all <- retnet %>% dplyr::filter(AD==1) %>% dplyr::pull(gene)
+ad_only <- retnet %>% dplyr::filter(AD==1, AR==0) %>% dplyr::pull(gene)
+ad_gof_all <- retnet %>% dplyr::filter(`AD GOF`==1) %>% dplyr::pull(gene)
+ad_gof_only <- retnet %>% dplyr::filter(`AD GOF`==1, AR==0) %>% dplyr::pull(gene)
+ad_haplo_all <- retnet %>% dplyr::filter(`AD Haploinsuffiency`==1) %>% dplyr::pull(gene)
+ad_haplo_only <- retnet %>% dplyr::filter(`AD Haploinsuffiency`==1, AR==0) %>% dplyr::pull(gene)
+
+# Filtering Patients for Inheritance Pattern in RetNet Genes
+s_all <- patient_retnet_filt
+s_ar_all <- patient_retnet_filt[patient_retnet_filt$Gene.refGene %in% ar_all, ]
+s_ar_only <- patient_retnet_filt[patient_retnet_filt$Gene.refGene %in% ar_only, ]
+s_ad_all <- patient_retnet_filt[patient_retnet_filt$Gene.refGene %in% ad_all, ]
+s_ad_only <- patient_retnet_filt[patient_retnet_filt$Gene.refGene %in% ad_only, ]
+s_ad_gof_all <- patient_retnet_filt[patient_retnet_filt$Gene.refGene %in% ad_gof_all, ]
+s_ad_gof_only <- patient_retnet_filt[patient_retnet_filt$Gene.refGene %in% ad_gof_only, ]
+s_ad_haplo_all <- patient_retnet_filt[patient_retnet_filt$Gene.refGene %in% ad_haplo_all, ]
+s_ad_haplo_only <- patient_retnet_filt[patient_retnet_filt$Gene.refGene %in% ad_haplo_only, ]
+
+# Optional Export to excel
+#write_xlsx(x = s_all, path = paste0(cwd, "/results/data_select/all.xlsx"))
+#write_xlsx(x = s_ar_all, path = paste0(cwd, "/results/data_select/ar_all.xlsx"))
+#write_xlsx(x = s_ar_only, path = paste0(cwd, "/results/data_select/ar_only.xlsx"))
+#write_xlsx(x = s_ad_all, path = paste0(cwd, "/results/data_select/ad_all.xlsx"))
+#write_xlsx(x = s_ad_only, path = paste0(cwd, "/results/data_select/ad_only.xlsx"))
+#write_xlsx(x = s_ad_gof_all, path = paste0(cwd, "/results/data_select/ad_gof_all.xlsx"))
+#write_xlsx(x = s_ad_gof_only, path = paste0(cwd, "/results/data_select/ad_gof_only.xlsx"))
+#write_xlsx(x = s_ad_haplo_all, path = paste0(cwd, "/results/data_select/ad_haplo_all.xlsx"))
+#write_xlsx(x = s_ad_haplo_only, path = paste0(cwd, "/results/data_select/ad_haplo_only.xlsx"))
+```
+
+# Function for plotting histograms for each supplied classifier
+
+```{r}
+histo_ploter2 <- function(classifer_list, classifier, xpos, ypos) {
+  ### Function for Plotting a histogram of a supplied classifier. Relies on the "classifier_dfs" list.
+  ### Inputs: 
+  ##### - classifier_list (list of group_split list of classifier models)
+  ##### - classifier (named classifier model),
+  ##### - xpos (list of 3 x-axis position numbers for binned labels from pathogenic, VUS, benign)
+  ##### - ypos (y-axis height of binned labels)
+  ### Outputs:
+  ##### - hist (a histogram)
+  
+  
+  # Filtering and defining thresholds per model
+  df <- classifer_list[[classifier]] %>% as.data.frame()
+  df_filt <- df[!is.na(df$Score), ]
+  upper_thres <- thresholds[thresholds$Classifier==classifier, ]$Upper_Threshold
+  lower_thres <- thresholds[thresholds$Classifier==classifier, ]$Lower_Threshold
+  total_var <- nrow(df)
+  filter_var <- nrow(df_filt)
+  percent_retained <- (1 - ((total_var - filter_var) / total_var)) * 100
+  percent_retained <- round(x = percent_retained, digits = 3)
+  
+  
+  # Counts per pathogencity score
+  df_counts <- df_filt %>% 
+    dplyr::group_by(Pathogenicity) %>% 
+    summarise(count = n())
+  df_counts$xpos <- xpos
+  
+  
+  # Plotting the histogram
+  hist <- df_filt %>% 
+    ggplot(aes(x = Score, fill = Pathogenicity)) +
+    geom_vline(xintercept = c(lower_thres, upper_thres), linetype="dashed", color="black", linewidth=0.8) + 
+    geom_histogram(binwidth = 0.02, color="black", size = 0.25) + 
+    geom_text(data = df_counts, aes(x = xpos, y = ypos, label = count), color = "black", inherit.aes = FALSE, size = 5) +
+    scale_fill_manual(values = c("#f01d1d", "#c7c7c7", "#857dfa")) +
+    labs(title = classifier, y = "Frequency") +
+    theme_classic() +
+    theme(plot.title = element_text(hjust = 0.5, size = 18),
+          legend.position = "none",
+          axis.title = element_text(size = 16),
+          axis.text = element_text(size = 14))
+  return(hist)
+}
+
+# Importing thresholds
+thresholds <- read_xlsx(path = paste0(cwd, "/model_thresholds/model_thresholds.xlsx"))
+```
+
+
+
+## ALL Autosomal Dominant Graphs
+
+# Graphing Variants and Classifier scores with histograms
+
+```{r}
+# Splitting AD IRD Scores into different classifiers - CHANGE "s_ad_all"
+group_names <- levels(s_ad_all$Classifier)
+classifier_dfs <- s_ad_all %>% dplyr::group_by(Classifier) %>% dplyr::group_split() %>% setNames(group_names)
+
+
+### Graphing histograms
+hist_saver <- function(histogram, model_name, export) {
+  print(histogram)
+  hist_name <- paste0(cwd, "/model_thresholds/", model_name, "_thresholds_graph.pdf")
+  if(isTRUE(export)) {
+    ggsave(plot = histogram, filename = hist_name, width = 2700, height = 820, units = "px", dpi = 300)
+  }
+}
+
+
+# Histogram for MutScore
+mutscore_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "MutScore", xpos = c(0.95, 0.72, 0.25), ypos = 500)
+hist_saver(histogram = mutscore_histo, model_name = "MutScore", export = TRUE)
+
+# Histogram for MetaRNN
+metarnn_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "MetaRNN", xpos = c(0.90, 0.71, 0.30), ypos = 460)
+hist_saver(histogram = metarnn_histo, model_name = "MetaRNN", export = TRUE)
+
+# Histogram for ClinPred
+clinpred_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "ClinPred", xpos = c(1.00, 0.91, 0.42), ypos = 420)
+hist_saver(histogram = clinpred_histo, model_name = "ClinPred", export = TRUE)
+
+# Histogram for REVEL
+revel_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "REVEL", xpos = c(0.90, 0.58, 0.15), ypos = 340)
+hist_saver(histogram = revel_histo, model_name = "REVEL", export = TRUE)
+
+# Histogram for VEST4
+vest4_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "VEST4", xpos = c(0.96, 0.70, 0.22), ypos = 210)
+hist_saver(histogram = vest4_histo, model_name = "VEST4", export = TRUE)
+
+# Histogram for BayesDel-addAF
+BayesDel_addAF_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "BayesDel-addAF", xpos = c(0.43, 0.15, -0.40), ypos = 150)
+hist_saver(histogram = BayesDel_addAF_histo, model_name = "BayesDel-addAF", export = TRUE)
+```
+
+# Merging histograms with ggpubr
+
+```{r}
+histo_list <- list(mutscore_histo, metarnn_histo, clinpred_histo, revel_histo, vest4_histo, BayesDel_addAF_histo)
+histo_fig <- ggpubr::ggarrange(plotlist = histo_list, nrow = 6, labels = c('A', 'B', 'C', 'D', 'E', 'F'))
+histo_fig <- annotate_figure(p = histo_fig, top = text_grob("Classification Models for Autosomal Dominant IRD Variants", color = "black", face = "bold", size = 18))
+histo_fig
+
+#ggsave(plot = histo_fig, filename = paste0(cwd, "/model_thresholds/model_classifier_thresholds_graph.pdf"), width = 3000, height = 5000, units = "px", dpi = 300)
+```
+
+
+
+## Autosomal Dominant Haploinsuffiency Graphs
+
+# Graphing Variants and Classifier scores with histograms
+
+```{r}
+# Importing thresholds
+thresholds <- read_xlsx(path = paste0(cwd, "/classifier_thresholds.xlsx"), sheet = "RetNet_Data")
+
+# Splitting AD GOF IRD Scores into different classifiers - CHANGE "s_ad_haplo_only"
+group_names <- levels(s_ad_haplo_only$Classifier)
+classifier_dfs <- s_ad_haplo_only %>% dplyr::group_by(Classifier) %>% dplyr::group_split() %>% setNames(group_names)
+
+
+### Graphing histograms
+
+
+# Histogram for MutScore
+mutscore_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "MutScore", xpos = c(0.91, 0.58, 0.15), ypos = 185)
+mutscore_histo
+
+# Histogram for MetaRNN
+metarnn_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "MetaRNN", xpos = c(0.85, 0.6, 0.22), ypos = 150)
+metarnn_histo
+
+# Histogram for ClinPred
+clinpred_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "ClinPred", xpos = c(0.96, 0.78, 0.32), ypos = 130)
+clinpred_histo
+
+# Histogram for REVEL
+revel_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "REVEL", xpos = c(0.86, 0.5, 0.14), ypos = 80)
+revel_histo
+
+# Histogram for VEST4
+vest4_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "VEST4", xpos = c(0.96, 0.65, 0.21), ypos = 70)
+vest4_histo
+
+# Histogram for BayesDel-addAF
+BayesDel_addAF_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "BayesDel-addAF", xpos = c(0.39, 0.08, -0.39), ypos = 53)
+BayesDel_addAF_histo
+```
+
+# Merging histograms with ggpubr
+
+```{r}
+histo_list <- list(mutscore_histo, metarnn_histo, clinpred_histo, revel_histo, vest4_histo, BayesDel_addAF_histo)
+histo_fig <- ggpubr::ggarrange(plotlist = histo_list, nrow = 6, labels = c('A', 'B', 'C', 'D', 'E', 'F'))
+histo_fig <- annotate_figure(p = histo_fig, top = text_grob("Classification Models for Autosomal Dominant Haploinsufficiency  IRD Variants", color = "black", face = "bold", size = 15))
+histo_fig
+
+#ggsave(plot = histo_fig, filename = paste0(cwd, "/results/classifier_graphs/ONLY_AD_Haplo_classifiers.png"), width = 2500, height = 4000, units = "px", dpi = 300)
+```
+
+
+
+## Autosomal Recessive Graphs
+
+# Graphing Variants and Classifier scores with histograms
+
+```{r}
+# Importing thresholds
+thresholds <- read_xlsx(path = paste0(cwd, "/classifier_thresholds.xlsx"), sheet = "RetNet_Data")
+
+# Splitting AR (ONLY) IRD Scores into different classifiers - CHANGE "s_ar_only"
+s_ar_only_filt <- s_ar_only[s_ar_only$Patient_ID %notin% c("SRF_392", "GTM_2956_WGS"), ] #bad reads
+group_names <- levels(s_ar_only_filt$Classifier)
+classifier_dfs <- s_ar_only_filt %>% dplyr::group_by(Classifier) %>% dplyr::group_split() %>% setNames(group_names)
+
+
+### Graphing histograms
+
+
+# Histogram for MutScore
+mutscore_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "MutScore", xpos = c(0.91, 0.58, 0.15), ypos = 360)
+mutscore_histo
+
+# Histogram for MetaRNN
+metarnn_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "MetaRNN", xpos = c(0.85, 0.6, 0.22), ypos = 520)
+metarnn_histo
+
+# Histogram for ClinPred
+clinpred_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "ClinPred", xpos = c(0.96, 0.78, 0.32), ypos = 450)
+clinpred_histo
+
+# Histogram for REVEL
+revel_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "REVEL", xpos = c(0.86, 0.5, 0.14), ypos = 250)
+revel_histo
+
+# Histogram for VEST4
+vest4_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "VEST4", xpos = c(0.96, 0.65, 0.21), ypos = 155)
+vest4_histo
+
+# Histogram for BayesDel-addAF
+BayesDel_addAF_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "BayesDel-addAF", xpos = c(0.39, 0.08, -0.39), ypos = 160)
+BayesDel_addAF_histo
+```
+
+# Merging histograms with ggpubr
+
+```{r}
+histo_list <- list(mutscore_histo, metarnn_histo, clinpred_histo, revel_histo, vest4_histo, BayesDel_addAF_histo)
+histo_fig <- ggpubr::ggarrange(plotlist = histo_list, nrow = 6, labels = c('A', 'B', 'C', 'D', 'E', 'F'))
+histo_fig <- annotate_figure(p = histo_fig, top = text_grob("Classification Models for Autosomal Recessive IRD Variants", color = "black", face = "bold", size = 14))
+histo_fig
+
+#ggsave(plot = histo_fig, filename = paste0(cwd, "/results/classifier_graphs/ONLY_AR_classifiers.pdf"), width = 2500, height = 4000, units = "px", dpi = 300)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
