@@ -11,6 +11,7 @@ output: html_document
 # Required packages
 library(tidyverse)
 library(ggpubr)
+library(ggridges)
 library(readxl)
 library(writexl)
 
@@ -252,27 +253,27 @@ hist_saver <- function(histogram, model_name, export) {
 
 # Histogram for MutScore
 mutscore_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "MutScore", xpos = c(0.95, 0.72, 0.25), ypos = 500)
-hist_saver(histogram = mutscore_histo, model_name = "MutScore", export = TRUE)
+#hist_saver(histogram = mutscore_histo, model_name = "MutScore", export = TRUE)
 
 # Histogram for MetaRNN
 metarnn_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "MetaRNN", xpos = c(0.90, 0.71, 0.30), ypos = 460)
-hist_saver(histogram = metarnn_histo, model_name = "MetaRNN", export = TRUE)
+#hist_saver(histogram = metarnn_histo, model_name = "MetaRNN", export = TRUE)
 
 # Histogram for ClinPred
 clinpred_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "ClinPred", xpos = c(1.00, 0.91, 0.42), ypos = 420)
-hist_saver(histogram = clinpred_histo, model_name = "ClinPred", export = TRUE)
+#hist_saver(histogram = clinpred_histo, model_name = "ClinPred", export = TRUE)
 
 # Histogram for REVEL
 revel_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "REVEL", xpos = c(0.90, 0.58, 0.15), ypos = 340)
-hist_saver(histogram = revel_histo, model_name = "REVEL", export = TRUE)
+#hist_saver(histogram = revel_histo, model_name = "REVEL", export = TRUE)
 
 # Histogram for VEST4
 vest4_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "VEST4", xpos = c(0.96, 0.70, 0.22), ypos = 210)
-hist_saver(histogram = vest4_histo, model_name = "VEST4", export = TRUE)
+#hist_saver(histogram = vest4_histo, model_name = "VEST4", export = TRUE)
 
 # Histogram for BayesDel-addAF
 BayesDel_addAF_histo <- histo_ploter2(classifer_list = classifier_dfs, classifier = "BayesDel-addAF", xpos = c(0.43, 0.15, -0.40), ypos = 150)
-hist_saver(histogram = BayesDel_addAF_histo, model_name = "BayesDel-addAF", export = TRUE)
+#hist_saver(histogram = BayesDel_addAF_histo, model_name = "BayesDel-addAF", export = TRUE)
 ```
 
 # Merging histograms with ggpubr
@@ -396,6 +397,50 @@ histo_fig
 ```
 
 
+
+## Creating a ggridges plot of pathogenicity thresholds
+
+# ALL AD variants
+
+```{r}
+# Normalizing BayesDel_addAF to a scale of 0-1 (from a scale of -1.293 to 0.758)
+s_ad_all_noBD <- s_ad_all[s_ad_all$Classifier != "BayesDel-addAF", ]
+s_ad_all_BD <- s_ad_all[s_ad_all$Classifier == "BayesDel-addAF", ]
+s_ad_all_BD$Score <- (s_ad_all_BD$Score - -1.293) / (0.758 - -1.293)
+s_ad_all_norm <- bind_rows(s_ad_all_noBD, s_ad_all_BD)
+s_ad_all_norm$Classifier <- factor(x = s_ad_all_norm$Classifier, levels = rev(c("MutScore", "MetaRNN", "ClinPred", "BayesDel-addAF", "REVEL", "VEST4")))
+
+# Plotting a ggridges plot
+patho_ridge <- s_ad_all_norm %>% ggplot(aes(x = Score, y = Classifier, fill = factor(after_stat(quantile)))) +
+  stat_density_ridges(geom = "density_ridges_gradient",
+                      calc_ecdf = TRUE,
+                      quantiles = c(0.80, 0.95),
+                      scale = 0.90) +
+  scale_fill_manual(values = c("#0000FFA0", "#A0A0A0A0", "#FF0000A0"),
+                    labels = c("Likely-Benign", "VUS", "Likely-Pathogenic")) +
+  scale_x_continuous(limits = c(-0.1, 1.1), breaks = seq(-0.1, 1.1, 0.1)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  labs(y = "", fill = "", title = "Classifier Pathogenicity Thresholds") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 20),
+    legend.position = "top",
+    legend.text = element_text(size = 18),
+    axis.title = element_text(size = 16),
+    axis.text.y = element_text(size = 16),
+    axis.text.x = element_text(size = 13))
+print(patho_ridge)
+
+# Saving the plot
+#ggsave(plot = patho_ridge, filename = paste0(cwd, "/model_thresholds/AD_thresholds_ridgeplot.pdf"), width = 2800, height = 3000, units = "px", dpi = 300)
+```
+
+
+
+## Graphing Overlap between Different Classifiers 
+
+```{r}
+
+```
 
 
 
