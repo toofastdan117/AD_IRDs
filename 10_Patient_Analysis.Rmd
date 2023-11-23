@@ -9,11 +9,13 @@ output: html_document
 
 ```{r setup, include=FALSE}
 # Required packages
+library(readxl)
+library(writexl)
+library(plyr)
 library(tidyverse)
 library(ggpubr)
 library(ggridges)
-library(readxl)
-library(writexl)
+library(pheatmap)
 
 # Setting working directory
 cwd <- getwd()
@@ -439,9 +441,67 @@ print(patho_ridge)
 ## Graphing Overlap between Different Classifiers 
 
 ```{r}
+# Replacing pathogenic factors with numbers for plotting in a pheatmap
+# Likely-Benign = 1
+# VUS = 2
+# Likely-Pathogenic = 3
+s_ad_all2 <- s_ad_all
+s_ad_all2$Pathogenicity <- as.character(s_ad_all2$Pathogenicity)
+s_ad_all2$Pathogenicity <- s_ad_all2$Pathogenicity %>% plyr::mapvalues(from = c("Likely-Benign", "VUS", "Likely-Pathogenic"), to = c(1, 2, 3)) %>% as.numeric()
 
+# Filtering dataframe and getting Gene + mutation to use as IDs
+mut_IDs <- c()
+for (mut in s_ad_all2$AAChange.refGene) {
+  mut_list <- strsplit(mut, split = ":")[[1]]
+  gene <- mut_list[1]
+  chr_prot <- tail(mut_list, 2)
+  change <- paste(gene, chr_prot[1], chr_prot[2], sep = ":")
+  mut_IDs <- c(mut_IDs, change)
+}
+select_cols <- c("Classifier", "Pathogenicity")
+ad_heat <- s_ad_all2[ , colnames(s_ad_all2) %in% select_cols]
+ad_heat$mut_IDs <- mut_IDs
 ```
 
+```{r}
+# Filtering out identical mutations that were reported more than once (in multiple patients)
+ad_heat2 <- ad_heat %>% 
+  dplyr::group_by(mut_IDs, Classifier) %>% 
+  distinct()
+
+# Pivoting Table and getting formatted for pheatmap
+ad_heat2 <- ad_heat2 %>% 
+  pivot_wider(names_from = Classifier, values_from = Pathogenicity) %>% 
+  as.data.frame()
+
+# Setting the index as mutation IDs 
+rownames(ad_heat2) <- ad_heat2$mut_IDs
+ad_heat2$mut_IDs <- NULL
+
+# Filtering only for variants that have at least one "likely-pathogenic" prediction
+#ad_heat2$max_path <- apply(X = ad_heat2, MARGIN = 1, FUN = max)
+#ad_heat2 <- ad_heat2[ad_heat2$max_path > 2, ]
+#ad_heat2$max_path <- NULL
+
+# Dropping any rows that have NAN values for any classifier
+ad_heat2 <- na.omit(ad_heat2)
+```
+
+```{r}
+# Pheatmap
+heatmap <- pheatmap(mat = ad_heat2,
+                    cluster_rows = TRUE, cutree_rows = 3, treeheight_row = 0,
+                    cluster_cols = FALSE, angle_col = 45,
+                    show_rownames = FALSE, 
+                    color = c("#0000FFA0", "#A0A0A0A0", "#FF0000A0"),
+                    breaks = c(0, 1, 2, 3),  # distances 0-1 = blue, 1-2 = grey, 2-3 = red
+                    main = "Classifier Concordance")
+
+# Saving the Pheatmap
+#pdf(file = paste0(cwd, "/model_thresholds/classifier_heatmap.pdf"), width = 3.5, height = 6.5)
+#print(heatmap)
+#dev.off()
+```
 
 
 

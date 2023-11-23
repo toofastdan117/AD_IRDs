@@ -374,6 +374,60 @@ print(roc_plot)
 
 
 
+## Creating a bar graph to compare AUCs of new classifiers with traditionally used tools
+
+```{r}
+# Data wrangling and merging into a single df
+auc_df_list <- list("AR" = auc_ar_all,
+                    "AD" = auc_ad_all,
+                    "AD Haplo" = auc_ad_haplo_only,
+                    "AD GOF" = auc_ad_gof_only)
+auc_comp <- data.frame()
+for (inheritance in names(auc_df_list)) {
+  df <- auc_df_list[[inheritance]]
+  df$Inheritance = inheritance
+  auc_comp <- rbind(auc_comp, df)
+}
+auc_comp$Inheritance <- factor(x = auc_comp$Inheritance, levels = c("AR", "AD", "AD Haplo", "AD GOF"))
+
+# Filtering only for top-performing classifiers and traditionally used tools
+auc_comp <- auc_comp %>% 
+  mutate(Model = recode(Model,
+    MutScore = "MutScore",
+    MetaRNN_score = "MetaRNN",
+    ClinPred_score = "ClinPred",
+    BayesDel_addAF_score = "BayesDel-addAF",
+    REVEL_score = "REVEL",
+    VEST4_score = "VEST4",
+    SIFT_converted_rankscore = "SIFT",
+    CADD_raw = "CADD",
+    Polyphen2_HVAR_score = "Polyphen2"
+  )) %>% 
+  filter(Model %in% c("MutScore", "MetaRNN", "ClinPred", "BayesDel-addAF", "REVEL", "VEST4", "SIFT", "CADD", "Polyphen2"))
+auc_comp$Model <- factor(x = auc_comp$Model, levels = c("MutScore", "MetaRNN", "ClinPred", "BayesDel-addAF", "REVEL", "VEST4", "SIFT", "CADD", "Polyphen2"))
+
+# Labeling new tools vs traditionally used tools
+auc_comp <- auc_comp %>% dplyr::mutate(model_use = 
+  dplyr::case_when(
+    Model %in% c("MutScore", "MetaRNN", "ClinPred", "BayesDel-addAF", "REVEL", "VEST4") ~ "New",
+    Model %in% c("SIFT", "CADD", "Polyphen2") ~ "Traditional"
+  )
+)
+auc_comp$model_use <- factor(x = auc_comp$model_use, levels = c("Traditional", "New"))
+```
+
+```{r}
+# Graphing a bar plot of AUC performance per inheritance pattern
+point_plot <- auc_comp %>% ggplot(aes(x = Inheritance, y = AUC, fill = model_use)) +
+  geom_boxplot(outlier.shape = NA) +
+  geom_point(position = position_jitterdodge(), aes(color = Model)) +
+  scale_fill_manual(values = c("grey", "white")) + 
+  scale_color_manual(values = c("#FF0000", "#00FF00", "#0000FF", "#FF7F00", "#984EA3", "#00BFFF", "#FF69B4", "#FFD700", "#006837")) +
+  labs(y = "", title = "AUC Performance per Inheritance Pattern") +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, size = 18))
+print(point_plot)
+```
 
 
 
