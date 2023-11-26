@@ -503,7 +503,32 @@ heatmap <- pheatmap(mat = ad_heat2,
 #dev.off()
 ```
 
+# Making a smaller heatmap, highlighting likely-pathogenic variants
 
+```{r}
+# Converting heatmap into a dataframe to filter for likely-pathogenic variants
+clusters <- data.frame(cutree(heatmap$tree_row, 3))
+colnames(clusters) <- c("cluster")
+clusters <- clusters %>% tibble::rownames_to_column(var = "variant")
+pathogenic_variants <- clusters[clusters$cluster == 3, ]
+ad_heat3 <- ad_heat2[rownames(ad_heat2) %in% pathogenic_variants$variant, ]
+```
+
+```{r}
+# Pheatmap of Likely-Pathogenic Variants
+heatmap2 <- pheatmap(mat = ad_heat3,
+                    cluster_rows = FALSE,
+                    cluster_cols = FALSE, angle_col = 45,
+                    show_rownames = FALSE, 
+                    color = c("#0000FFA0", "#A0A0A0A0", "#FF0000A0"),
+                    breaks = c(0, 1, 2, 3),  # distances 0-1 = blue, 1-2 = grey, 2-3 = red
+                    main = "Likely-Pathogenic Variants")
+
+# Saving the Pheatmap
+#pdf(file = paste0(cwd, "/model_thresholds/likely_pathogenic_classifier_heatmap.pdf"), width = 3.5, height = 3.5)
+#print(heatmap2)
+#dev.off()
+```
 
 
 

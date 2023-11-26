@@ -13,6 +13,7 @@ output: html_document
 library("tidyverse")
 library("RColorBrewer")
 library("readxl")
+library("broom")
 #library("ggpubr")
 
 # Working directory
@@ -420,15 +421,39 @@ auc_comp$model_use <- factor(x = auc_comp$model_use, levels = c("Traditional", "
 # Graphing a bar plot of AUC performance per inheritance pattern
 point_plot <- auc_comp %>% ggplot(aes(x = Inheritance, y = AUC, fill = model_use)) +
   geom_boxplot(outlier.shape = NA) +
-  geom_point(position = position_jitterdodge(), aes(color = Model)) +
+  geom_point(size=3, position = position_jitterdodge(), aes(color = Model)) +
   scale_fill_manual(values = c("grey", "white")) + 
   scale_color_manual(values = c("#FF0000", "#00FF00", "#0000FF", "#FF7F00", "#984EA3", "#00BFFF", "#FF69B4", "#FFD700", "#006837")) +
-  labs(y = "", title = "AUC Performance per Inheritance Pattern") +
-  theme_bw() +
-  theme(plot.title = element_text(hjust = 0.5, size = 18))
+  labs(x = "", size = "", title = "AUC Performance per Inheritance Pattern", fill = "Generation") +
+  theme_classic() +
+  guides(color = guide_legend(override.aes = list(size = 3))) +
+  theme(plot.title = element_text(hjust = 0.5, size = 18),
+        legend.title = element_text(size = 18),
+        legend.text = element_text(size = 16),
+        axis.title = element_text(size = 16),
+        axis.text.y = element_text(size = 16),
+        axis.text.x = element_text(size = 16))
 print(point_plot)
+
+# Optional export of figures
+#ggsave(plot = point_plot, filename = paste0(cwd, "/AUC_ROC_results/AUC_comp_plot.pdf"), width = 3000, height = 1800, units = "px", dpi = 300)
 ```
 
+# Running statistics on AUC scores for new and traditional tools
+
+```{r}
+auc_groups <- auc_comp %>% dplyr::group_by(Inheritance) %>% dplyr::group_split()
+for (x in auc_groups) {
+  pattern <- unique(as.character(x$Inheritance))
+  new_tools <- x[x$model_use == "New", ] %>% dplyr::pull(AUC)
+  trad_tools <- x[x$model_use == "Traditional", ] %>% dplyr::pull(AUC)
+  ttest <- t.test(x = trad_tools, y = new_tools)
+  pval <- ttest$p.value
+  est <- ttest$estimate
+  mean_diff <- as.numeric(est["mean of y"] - est["mean of x"])
+  print(paste0(pattern, ": p-value = ", pval, ". Mean difference: ", mean_diff))
+}
+```
 
 
 
