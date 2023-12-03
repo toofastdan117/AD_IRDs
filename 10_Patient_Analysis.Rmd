@@ -179,6 +179,21 @@ s_ad_haplo_only <- patient_retnet_filt[patient_retnet_filt$Gene.refGene %in% ad_
 #write_xlsx(x = s_ad_haplo_only, path = paste0(cwd, "/results/data_select/ad_haplo_only.xlsx"))
 ```
 
+# Finding the number of variants analyzed
+
+```{r}
+# Total and unique IRD variants
+print(paste0("Total IRD Variants: ", length(patient_retnet$AAChange.refGene)))
+print(paste0("Total unique IRD Variants: ", length(unique(patient_retnet$AAChange.refGene))))
+
+# Total AD and unique AD IRD variants
+ad_patient_retnet <- patient_retnet[patient_retnet$Gene.refGene %in% ad_all, ]
+print(paste0("Total AD IRD Variants: ", length(ad_patient_retnet$AAChange.refGene)))
+print(paste0("Total unique AD IRD Variants: ", length(unique(ad_patient_retnet$AAChange.refGene))))
+```
+
+
+
 # Function for plotting histograms for each supplied classifier
 
 ```{r}
