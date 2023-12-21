@@ -15,4 +15,4 @@
 
 The main results of the benchmarking can be summarized in Figure 2: 
 
-![Figure 2 ROC-AUC](figures/Figure%202.jpg)
+![Figure 2 ROC-AUC](figures/Figure%202_GitHub.jpg)
