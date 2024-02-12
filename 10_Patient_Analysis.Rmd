@@ -118,7 +118,11 @@ patient_retnet_filt <- patient_retnet_filt %>%
 patient_retnet_filt$MutScore_pathogenicity <- paste0("MutScore_", patient_retnet_filt$MutScore_pathogenicity, "_", patient_retnet_filt$MutScore)
 
 
+# Creating a copy of the patient_retnet_filt df to export later for candidate AD variants
+patient_retnet_export <- data.frame(patient_retnet_filt)
+```
 
+```{r}
 # Pivoting columns and separating columns (STOP HERE before running this part if you want to export excel)
 `%notin%` <- Negate(`%in%`)
 raw_scores <- c("MutScore", "VEST4_score", "REVEL_score", "ClinPred_score", "MetaRNN_score", "BayesDel_addAF_score")
@@ -136,12 +140,13 @@ patient_retnet_filt <- patient_retnet_filt %>%
     into = c("Classifier", "Pathogenicity", "Score"),
     sep = "_"
   )
-patient_retnet_filt[patient_retnet_filt == "NA"] <- NA
+#patient_retnet_filt[patient_retnet_filt == "NA"] <- NA
 patient_retnet_filt$Classifier <- gsub(pattern = "-score", replacement = "", x = patient_retnet_filt$Classifier)
 patient_retnet_filt$Classifier <- factor(x = patient_retnet_filt$Classifier, levels = c("MutScore", "MetaRNN", "ClinPred", "REVEL", "VEST4", "BayesDel-addAF"))
 patient_retnet_filt$Pathogenicity <- factor(x = patient_retnet_filt$Pathogenicity, levels = c("Likely-Pathogenic", "VUS", "Likely-Benign"))
 patient_retnet_filt$Score <- as.numeric(patient_retnet_filt$Score)
 ```
+
 
 # Splitting scores into different inheritance patterns defined in RetNet
 
@@ -453,7 +458,7 @@ print(patho_ridge)
 
 
 
-## Graphing Overlap between Different Classifiers 
+## Graphing Overlap between Different Classifiers and exporting to excel
 
 ```{r}
 # Replacing pathogenic factors with numbers for plotting in a pheatmap
@@ -546,6 +551,52 @@ heatmap2 <- pheatmap(mat = ad_heat3,
 ```
 
 
+
+# Filtering and exporting a df of all candidate AD Variants
+
+```{r}
+# Getting a column of variant IDs to match the selected variants in the pathogenic cluster in the heatmap
+variant_IDs <- c()
+for (mut in patient_retnet_export$AAChange.refGene) {
+  mut_list <- strsplit(mut, split = ":")[[1]]
+  gene <- mut_list[1]
+  chr_prot <- tail(mut_list, 2)
+  change <- paste(gene, chr_prot[1], chr_prot[2], sep = ":")
+  variant_IDs <- c(variant_IDs, change)
+}
+patient_retnet_export$variant_IDs <- variant_IDs
+
+# Filtering for likely pathogenic variants and adding a number ID to each patient / variant
+candidates_export <- patient_retnet_export[patient_retnet_export$variant_IDs %in% row.names(ad_heat3), ]
+candidates_export$var_ID <- 1:nrow(candidates_export)
+
+# Normalizing BayesDel_addAF to a scale of 0-1 (from a scale of -1.293 to 0.758)
+candidates_export$BayesDel_addAF_norm_score <- (candidates_export$BayesDel_addAF_score - -1.293) / (0.758 - -1.293)
+
+# Calculating Quartiles to display a range of predictor scores
+quantiles_df <- data.frame()
+for (ID in candidates_export$var_ID) {
+  row <- candidates_export[candidates_export$var_ID == ID, ] %>% 
+    dplyr::select(VEST4_score, MetaRNN_score, REVEL_score, ClinPred_score, MutScore, BayesDel_addAF_norm_score) %>% 
+    t() %>% 
+    as.data.frame()
+  colnames(row) <- "scores"
+  quants <- quantile(row$scores, probs = c(0.25, 0.75))
+  quants_df <- data.frame(var_ID = ID, percent_25 = round(quants[1], 3), percent_75 = round(quants[2], 3))
+  quants_df$IQR <- paste0(quants_df$percent_25, "-", quants_df$percent_75)
+  quantiles_df <- bind_rows(quantiles_df, quants_df)
+  #print(quants_df)
+}
+candidates_export <- merge(candidates_export, quantiles_df, by = "var_ID")
+
+# Selecting columns for export
+candidates_export <- candidates_export %>% dplyr::select("Chr", "Start", "End", "Ref", "Alt", "Patient_ID", "Genotype", "alt_reads", "ref_reads", "total_reads", "gnomad_WGS_AC", "gnomad_WGS_AF", "gnomad_WGS_AN", "Func.refGene", "Gene.refGene", "ExonicFunc.refGene", "AAChange.refGene", "Xref.refGene", "VEST4_score", "REVEL_score", "MetaRNN_score", "BayesDel_addAF_score", "BayesDel_addAF_norm_score", "ClinPred_score", "MutScore", "IQR", "VEST4_score_pathogenicity", "REVEL_score_pathogenicity", "MetaRNN_score_pathogenicity", "BayesDel_addAF_score_pathogenicity", "ClinPred_score_pathogenicity", "MutScore_pathogenicity")
+
+
+
+# Exporting to excel
+#write_xlsx(x = candidates_export, path = paste0(cwd, "/patient_data/candidate_AD_variants.xlsx"))
+```
 
 
 
