@@ -1,5 +1,5 @@
 ---
-title: "Patient_Analysis"
+title: "IRD_Patiant_Analysis"
 author: "Daniel Brock"
 date: "2023-07-13"
 output: html_document
@@ -518,8 +518,9 @@ heatmap <- pheatmap(mat = ad_heat2,
                     main = "Classifier Concordance")
 
 # Saving the Pheatmap
-#pdf(file = paste0(cwd, "/model_thresholds/classifier_heatmap.pdf"), width = 3.5, height = 6.5)
-#print(heatmap)
+#pdf(file = paste0(cwd, "/model_thresholds/classifier_heatmap.pdf"), width = 3.5, height = 6.5)   #for PDFs
+#tiff(filename = paste0(cwd, "/model_thresholds/classifier_heatmap.tif"), width = 3.5, height = 6.5, units = "in", res = 300)  #for tiffs
+print(heatmap)
 #dev.off()
 ```
 
