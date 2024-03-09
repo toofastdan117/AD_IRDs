@@ -1,7 +1,7 @@
 # Autosomal Dominant Inherited Retinal Disease Missense Classifier Benchmarking
 ### Date Created: 10/6/2023
 ### Author: Daniel Brock
-### Publication: TBD
+### Publication: Comparative analysis of in-silico tools in identifying pathogenic variants in dominant inherited retinal diseases. **Brock DC**, Wang M, Hussain HMJ, Rauch DE, Marra M, Pennesi ME, Yang P, Everett L, Ajlan RS, Colbert J, Porto FBO, Matynia A, Gorin MB, Koenekoop RK, Lopez I, Sui R, Zou G, Li Y, Chen R. *Human Molecular Genetics*. March 7, 2024. [doi:10.1093/hmg/ddae028](https://doi.org/10.1093/hmg/ddae028)
 ### Purpose: To benchmark newer missense classifiers against older, historically used classifiers and to identify autosomal dominant (AD) inherited retinal diseases (IRDs) in a cohort of undiagnosed patients. 
 
 **Descriptions of what individual scripts accomplish:**
